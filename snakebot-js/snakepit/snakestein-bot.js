@@ -19,6 +19,14 @@ function update(mapState, myUserId){
 
   // 2. Do some nifty planning...
   // (Tip: see MapUtils for some off-the-shelf navigation aid.
+  var food = MapUtils.findFood(myCoords, map);
+  if(food.length){
+  var path = MapUtils.findPathAS(myCoords, food.pop(), map.getWidth(), map.getHeight(), function (coord, goalCoord) {
+        var tile = MapUtils.getAt(coord, map);
+        return MapUtils.getManhattanDistance(coord, goalCoord) + (tile && (tile.content === 'snakebody' || tile.content === 'snakehead') ? 1000 : 0);
+      });
+      direction = path[0].direction;
+  }
 
 
 

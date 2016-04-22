@@ -183,3 +183,6 @@ exports.positionsToCoords     = positionsToCoords;
 exports.findFood              = findFood;
 exports.getSnakeCoords        = getSnakeCoords;
 exports.isWithinSquare        = isWithinSquare;
+
+exports.translateCoordinate = translateCoordinate;
+exports.getOccupiedMapTiles = getOccupiedMapTiles;
