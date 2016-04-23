@@ -33,16 +33,18 @@ function update(mapState, myUserId) {
         mapObjects.push(e);
     });
     map.getSnakeInfos().map(function(snakeInfo) {
+        var mySnake = snakeInfo.getId() == myUserId;
         snakeInfo.getPositions().map(function(pos, index, arr) {
             var e = MapUtils.translatePosition(pos, map.getWidth());
-            e.content = 0 == index ? 'snakehead' : index = arr.length - 1 ? 'snaketail' : 'snakebody';
+            e.content = 0 == index ? 'snakehead' : (index == arr.length - 1 ? (mySnake ? 'mysnaketail' : 'snaketail') : 'snakebody');
             mapObjects.push(e);
         })
     });
+    // console.log(mapObjects)
 
     // FOOD
     if (food.length) {
-        var path = Dejkstras(myCoords, map.getWidth(), map.getHeight(), mapObjects, ['food'], ['obstacle', 'snakehead', 'snakebody', 'snaketail']);
+        var path = Dejkstras(myCoords, map.getWidth(), map.getHeight(), mapObjects, ['food'], ['obstacle', 'snakehead', 'snakebody', 'mysnaketail', 'snaketail']);
 
         if (path != null) {
             var newCord = path[0];
@@ -110,11 +112,57 @@ function update(mapState, myUserId) {
 
     // TAILS
 
+    // Aim for tail
+    // Follow tail for 3 tick
+    // Continue as before
+    var tailPath = Dejkstras(myCoords, map.getWidth(), map.getHeight(), mapObjects, ['snaketail'], ['obstacle', 'snakebody', 'mysnaketail', 'snakehead']);
+    // console.log(tailPath)
+    if (false && tailPath != null) {
+        var tailCoord = tailPath.pop();
+        var snake = map.getSnakeInfos().filter(function(snakeInfo) {
+            var coord = MapUtils.translatePosition(snakeInfo.getPositions().pop(), map.getWidth());
+            return coord.x == tailCoord.x && coord.y == tailCoord.y;
+        });
+        if (snake.length === 1) {
+            // We found the snake, lets figger out where it's gonna be when we reach it
+            var snakeCoords = snake.map(function(snake) {
+                var coord = MapUtils.translatePosition(snake.getPositions().pop(), map.getWidth());
+                return { x: coord.x, y: coord.y };
+            });
+            var goal = snakeCoords.slice(-1);
+            goal.content = 'goal';
+            var goalPaths = Dejkstras(myCoords, map.getWidth(), map.getHeight(), mapObjects.concat(goal), ['goal'], ['obstacle', 'snakebody', 'mysnaketail', 'snaketail', 'snakehead'], tailPath.length);
+            if(goalPaths != null) {
+                console.log('Hunting tail')
+                var newCord = goalPaths[0];
+                if (newCord.x < myCoords.x) {
+                    path[0].direction = 'LEFT';
+                } else if (newCord.x > myCoords.x) {
+                    path[0].direction = 'RIGHT';
+                } else if (newCord.y < myCoords.y) {
+                    path[0].direction = 'UP';
+                } else if (newCord.y > myCoords.y) {
+                    path[0].direction = 'DOWN';
+                }
+                if (path[0].direction != 'undefined') {
+                    dirs.addScored(
+                        Directions.scoredDirection(
+                            path[0].direction,
+                            10 / goalPaths[0].length,
+                            Directions.names.TAIL
+                        )
+                    )
+                }
+            } else {
+                // console.log('Cant reach tail')
+            }
+        }
+    }
 
 
     // AVOID SNAKES, ESPECIALLY HEADS
     // Search for unpredictable snake heads, deepth 2
-    var headPaths = Dejkstras(myCoords, map.getWidth(), map.getHeight(), mapObjects, ['snakehead'], ['obstacle', 'snakebody', 'snaketail'], 2);
+    var headPaths = Dejkstras(myCoords, map.getWidth(), map.getHeight(), mapObjects, ['snakehead'], ['obstacle', 'snakebody', 'mysnaketail', 'snaketail'], 2);
     if (headPaths == null) {
         dirs.getDirs().forEach(function(curr, i, arr) {
             if (dir.name != Directions.names.FOOD) {
