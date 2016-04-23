@@ -7,6 +7,8 @@ var log = null; // Injected logger
 var Dejkstras = require('./helpers/dejkstras.js');
 var Directions = require('./helpers/directions.js');
 
+var lastDecision = null;
+
 function update(mapState, myUserId) {
 
     var map = mapState.getMap();
@@ -17,6 +19,10 @@ function update(mapState, myUserId) {
 
     var myCoords = MapUtils.whereIsSnake(myUserId, map);
     snakeBrainDump.myCoords = myCoords;
+    
+    var myPoints =  map.getSnakeInfos().reduce(function(prev, curr) {
+        return curr.getId() == myUserId ? curr.getPoints() : prev;
+    }, 0);
 
     var food = MapUtils.findFood(myCoords, map);
 
@@ -169,8 +175,18 @@ function update(mapState, myUserId) {
                 return;
             }
             // If score for food is higher then 3 / 2, we are all chasing the same food and we're close the the food. ABORT
-            if (curr.score > 3 / 2) {
+            if (curr.score >= 3 / 2) {
                 arr[i].score *= -1;
+                // Clear all other going in this direction
+                dirs.getDirs().forEach((other, i, arr) => {
+                    if(other.name != Directions.names.FOOD && other.direction == curr.direction) {
+                        if(other.point === 0) {
+                            arr[i].point = -1;
+                        } else {
+                            arr[i].point *= -1;
+                        }
+                    }
+                })
             }
         });
         dirs.getDirs().forEach(function(curr, i, arr) {
@@ -183,6 +199,44 @@ function update(mapState, myUserId) {
     // LOOK AHEAD, IS THIS A DEAD END
 
     // KAMIKAZE FOR THE WIN, ENOUGHT POINTS
+    var kamikaze = map.getSnakeInfos().every(function(snakeInfo) {
+        if(snakeInfo.getId() == myUserId) {
+            return true;
+        }
+        return myPoints > snakeInfo.getPoints() + 11 
+    });
+    var snakesAlive = map.getSnakeInfos().reduce((prev, curr) => {
+        return curr.isAlive() ? prev + 1 : prev;
+    }, 0);
+    if(kamikaze && snakesAlive == 2 && lastDecision != null) {
+        // Hit my self
+        var kamDir = myCoords;
+        switch (lastDecision.direction) {
+            case 'UP':
+                kamDir.y++;
+                kamDir.direction = 'DOWN';
+                break;
+            case 'RIGHT':
+                kamDir.x--;
+                kamDir.direction = 'LEFT';
+                break;
+            case 'DOWN':
+                kamDir.y--;
+                kamDir.direction = 'UP';
+                break;
+            case 'LEFT':
+                kamDir.x++;
+                kamDir.direction = 'RIGHT';
+                break;
+        }
+        dirs.addScored(
+            Directions.scoredDirection(
+                kamDir.direction,
+                10,
+                Directions.names.KAMIKAZE
+            )
+        )
+    }
 
     // Decide
     var best = dirs.getBest();
@@ -192,6 +246,7 @@ function update(mapState, myUserId) {
     } else {
         direction = dirs.getBest().direction;
     }
+    lastDecision = best;
 
     // DEBUG
     snakeBrainDump.dirs = dirs.getDirs();
@@ -210,6 +265,7 @@ function bootStrap(logger) {
 
 function gameEnded() {
     // Implement as needed.
+    lastDecision = null;
 }
 
 exports.bootStrap = bootStrap;

@@ -1,4 +1,4 @@
-var names = { FOOD: 'FOOD', TAIL: 'TAIL', RANDOM: 'RANDOM' };
+var names = { FOOD: 'FOOD', TAIL: 'TAIL', RANDOM: 'RANDOM', KAMIKAZE: 'KAMIKAZE' };
 var allowed = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
 var resultInDeath = ['obstacle', 'snakehead', 'snakebody'];
 
