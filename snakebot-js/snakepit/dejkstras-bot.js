@@ -88,7 +88,7 @@ function update(mapState, myUserId) {
                 return false;
         }
         // Map boundries
-        if (newCord.x < 0 || newCord.x > map.getWidth() || newCord.y < 0 || newCord > map.getHeight()) {
+        if (newCord.x < 0 || newCord.x > map.getWidth() - 1 || newCord.y < 0 || newCord > map.getHeight() - 1) {
             return false;
         }
         var point = MapUtils.translateCoordinate(newCord, map.getWidth());
